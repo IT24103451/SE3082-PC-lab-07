@@ -1,1 +1,38 @@
+﻿Exercise 2: Replace Broadcast with Scatter
+============================================
 
+What was changed from Exercise 1:
+- Only root (rank 0) allocates the full N-element array. Previously every
+  process allocated the full array which wasted memory.
+- All processes allocate a small local_chunk buffer of size N/size (250,000
+  elements with 4 processes) instead of the full 1,000,000-element array.
+- Replaced MPI_Bcast with MPI_Scatter to distribute only the relevant chunk
+  to each process.
+- The local sum loop now iterates over local_chunk[0..chunk_size) instead of
+  array[start_idx..end_idx).
+- The Send/Recv collection on root is kept unchanged (as instructed).
+
+Compile and Run (on EC2):
+  $ mpicc -o sum_scatter sum_scatter.c
+  $ mpirun -np 4 ./sum_scatter
+
+Sample Output (4 processes):
+  Root filled array with values 1 to 1000000
+    Rank 0: summed local_chunk[0..250000) => local_sum = 31250125000
+    Rank 1: summed local_chunk[0..250000) => local_sum = 93750125000
+    Rank 2: summed local_chunk[0..250000) => local_sum = 156250125000
+    Rank 3: summed local_chunk[0..250000) => local_sum = 218750125000
+
+  [Scatter] Total sum = 500000500000
+  [Scatter] Expected  = 500000500000
+  [Scatter] Correct?  = YES
+  [Scatter] Time      = 0.0142 sec
+
+Key Observations:
+- Memory usage is significantly reduced. With 4 processes, each process now
+  allocates only 250K integers (~1MB) instead of 1M integers (~4MB).
+- MPI_Scatter is more efficient than MPI_Bcast because each process receives
+  only the data it needs, reducing network traffic.
+- Common mistake to avoid: setting sendcount to N (1,000,000) instead of
+  N/size (250,000). The sendcount parameter is the number of elements sent
+  TO EACH process, not the total array size.

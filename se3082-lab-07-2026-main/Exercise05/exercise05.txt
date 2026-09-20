@@ -1,1 +1,34 @@
+﻿Exercise 5: Replace Reduce with Allreduce
+============================================
 
+What was changed from Exercise 4:
+- Replaced MPI_Reduce with MPI_Allreduce (removed the root parameter).
+- After MPI_Allreduce, EVERY process has the correct total_sum, not just root.
+- Added output on every process showing: local_sum, total_sum, and the
+  percentage of the total that this process's chunk contributed.
+- Root still prints the final verification.
+
+Compile and Run (on EC2):
+  $ mpicc -o sum_allreduce sum_allreduce.c
+  $ mpirun -np 4 ./sum_allreduce
+
+Sample Output (4 processes):
+  Root filled array with values 1 to 1000000
+    Rank 0: local_sum = 31250125000  |  total_sum = 500000500000  |  contribution = 6.2500%
+    Rank 1: local_sum = 93750125000  |  total_sum = 500000500000  |  contribution = 18.7500%
+    Rank 2: local_sum = 156250125000  |  total_sum = 500000500000  |  contribution = 31.2500%
+    Rank 3: local_sum = 218750125000  |  total_sum = 500000500000  |  contribution = 43.7500%
+
+  [Allreduce] Total sum = 500000500000
+  [Allreduce] Expected  = 500000500000
+  [Allreduce] Correct?  = YES
+  [Allreduce] Time      = 0.0092 sec
+
+Key Observations:
+- MPI_Allreduce has no root parameter — the result goes to ALL processes.
+- It is preferred over MPI_Reduce + MPI_Bcast when all processes need the
+  result, because it is typically implemented more efficiently using a
+  butterfly/recursive-doubling algorithm.
+- The percentage contributions are unequal because the array values 1..N
+  are not uniformly distributed across chunks. Rank 3 handles the largest
+  values (750001..1000000) so its chunk contributes the most to the total.

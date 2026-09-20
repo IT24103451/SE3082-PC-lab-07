@@ -1,1 +1,36 @@
+﻿Exercise 3: Replace Send/Recv with Gather
+============================================
 
+What was changed from Exercise 2:
+- The manual MPI_Send/MPI_Recv collection loop is replaced with a single
+  MPI_Gather call.
+- On root, an array all_sums of size `size` (one long long per process)
+  is allocated to receive the partial sums in rank order.
+- After MPI_Gather, root loops through all_sums[0..size) to compute the
+  total sum.
+- Note: MPI_Gather only COLLECTS data — it does not perform any computation.
+  Root still needs to manually sum the gathered values.
+
+Compile and Run (on EC2):
+  $ mpicc -o sum_gather sum_gather.c
+  $ mpirun -np 4 ./sum_gather
+
+Sample Output (4 processes):
+  Root filled array with values 1 to 1000000
+    Rank 0: local_sum = 31250125000
+    Rank 1: local_sum = 93750125000
+    Rank 2: local_sum = 156250125000
+    Rank 3: local_sum = 218750125000
+
+  [Gather] Total sum = 500000500000
+  [Gather] Expected  = 500000500000
+  [Gather] Correct?  = YES
+  [Gather] Time      = 0.0113 sec
+
+Key Observations:
+- MPI_Gather replaces the entire Send/Recv loop with a single collective call,
+  making the code cleaner and less error-prone.
+- All processes must call MPI_Gather (it is a collective operation).
+- The recvbuf (all_sums) is only meaningful on root. Non-root processes can
+  pass NULL for recvbuf.
+- recvcount = 1 means root receives 1 element FROM EACH process, not 1 total.
